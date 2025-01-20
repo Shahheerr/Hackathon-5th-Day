@@ -1,18 +1,17 @@
-'use client'
-import Image from "next/image"
-import Link from "next/link"
-import { ChevronRight } from 'lucide-react'
-import { useState } from "react"
-import { Heart, Truck, RotateCcw } from 'lucide-react'
-import { Button } from "@/components/ui/Button"
+'use client';
+import Image from "next/image";
+import Link from "next/link";
+import { ChevronRight, Heart, Truck, RotateCcw, Star } from 'lucide-react';
+import { useState } from "react";
+import { Button } from "@/components/ui/Button";
 
 interface BreadcrumbItem {
-    label: string
-    href: string
+    label: string;
+    href: string;
 }
 
 interface BreadcrumbProps {
-    items: BreadcrumbItem[]
+    items: BreadcrumbItem[];
 }
 
 function Breadcrumb({ items }: BreadcrumbProps) {
@@ -30,24 +29,23 @@ function Breadcrumb({ items }: BreadcrumbProps) {
                 </div>
             ))}
         </nav>
-    )
+    );
 }
 
-
 interface Color {
-    name: string
-    value: string
+    name: string;
+    value: string;
 }
 
 interface Size {
-    label: string
-    value: string
+    label: string;
+    value: string;
 }
 
 const colors: Color[] = [
     { name: "White", value: "#FFFFFF" },
     { name: "Pink", value: "#EC7272" },
-]
+];
 
 const sizes: Size[] = [
     { label: "XS", value: "xs" },
@@ -55,28 +53,49 @@ const sizes: Size[] = [
     { label: "M", value: "m" },
     { label: "L", value: "l" },
     { label: "XL", value: "xl" },
-]
+];
 
-function ProductDetail() {
-    const [selectedColor, setSelectedColor] = useState(colors[0])
-    const [selectedSize, setSelectedSize] = useState(sizes[2])
-    const [quantity, setQuantity] = useState(2)
+interface ProductDetailProps {
+    product: {
+        _id: string;
+        title: string;
+        description: string;
+        price: number;
+        oldPrice?: number;
+        rating: number;
+        ratingCount: number;
+        stock: number;
+        specifications: Record<string, string>;
+        category: string;
+        imageUrl: string;
+        image?: {
+            asset: {
+                url: string;
+            };
+        };
+    };
+}
+
+function ProductDetail({ product }: ProductDetailProps) {
+    const [selectedColor, setSelectedColor] = useState(colors[0]);
+    const [selectedSize, setSelectedSize] = useState(sizes[2]);
+    const [quantity, setQuantity] = useState(1);
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-medium">Havic HV G-92 Gamepad</h1>
+            <h1 className="text-2xl font-medium">{product.title}</h1>
 
             <div className="flex items-center gap-4">
-                <StarRating rating={4} reviews={150} />
-                <span className="text-sm text-green-500">|  In Stock</span>
+                <StarRating rating={product.rating} reviews={product.ratingCount} />
+                <span className="text-sm text-green-500">|  In Stock ({product.stock} available)</span>
             </div>
 
-            <div className="text-2xl font-medium">$192.00</div>
+            <div className="text-2xl font-medium">${product.price.toFixed(2)}</div>
+            {product.oldPrice && (
+                <div className="text-lg text-gray-500 line-through">${product.oldPrice.toFixed(2)}</div>
+            )}
 
-            <p className="text-gray-600">
-                PlayStation 5 Controller Skin High quality vinyl with air channel adhesive
-                for easy bubble free install & mess free removal Pressure sensitive.
-            </p>
+            <p className="text-gray-600">{product.description}</p>
 
             <div className="space-y-4">
                 <div>
@@ -160,20 +179,20 @@ function ProductDetail() {
                 </div>
             </div>
         </div>
-    )
+    );
 }
 
 interface ProductImage {
-    src: string
-    alt: string
+    src: string;
+    alt: string;
 }
 
 interface ProductGalleryProps {
-    images: ProductImage[]
+    images: ProductImage[];
 }
 
 function ProductGallery({ images }: ProductGalleryProps) {
-    const [selectedImage, setSelectedImage] = useState(0)
+    const [selectedImage, setSelectedImage] = useState(0);
 
     return (
         <div className="flex gap-4">
@@ -204,17 +223,15 @@ function ProductGallery({ images }: ProductGalleryProps) {
                 />
             </div>
         </div>
-    )
+    );
 }
-
-import { Star } from 'lucide-react'
 
 interface StarRatingProps {
-    rating: number
-    reviews: number
+    rating: number;
+    reviews: number;
 }
 
-export function StarRating({ rating, reviews }: StarRatingProps) {
+function StarRating({ rating, reviews }: StarRatingProps) {
     return (
         <div className="flex items-center gap-2">
             <div className="flex">
@@ -230,43 +247,44 @@ export function StarRating({ rating, reviews }: StarRatingProps) {
             </div>
             <span className="text-sm text-gray-500">({reviews} Reviews)</span>
         </div>
-    )
+    );
 }
-const breadcrumbItems = [
-    { label: "Account", href: "/account" },
-    { label: "Gaming", href: "/gaming" },
-    { label: "Havic HV G-92 Gamepad", href: "/products/havic-hv-g92-gamepad" },
-]
 
-const productImages = [
-    {
-        src: "/placeholder.svg",
-        alt: "Product image 1"
-    },
-    {
-        src: "/placeholder.svg",
-        alt: "Product image 2"
-    },
-    {
-        src: "/placeholder.svg",
-        alt: "Product image 3"
-    },
-    {
-        src: "/placeholder.svg",
-        alt: "Product image 4"
-    },
-]
+interface ProductPageProps {
+    product: ProductDetailProps['product'];
+}
 
-export default function ProductPage() {
+export default function ProductPage({ product }: ProductPageProps) {
+    const breadcrumbItems = [
+        { label: "Home", href: "/" },
+        { label: product.category, href: `/category/${product.category}` },
+        { label: product.title, href: `/product/${product._id}` },
+    ];
+
+    const productImages = product.image ? [
+        {
+            src: product.image.asset.url,
+            alt: product.title
+        },
+        // Add more images if available
+    ] : [
+        {
+            src: "/placeholder.svg",
+            alt: "Product image"
+        },
+    ];
+
     return (
         <main className="container mx-auto px-4 py-8">
             <Breadcrumb items={breadcrumbItems} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <ProductGallery images={productImages} />
-                <ProductDetail />
+                <div className="flex flex-col">
+                    <ProductGallery images={productImages} />
+                </div>
+                <div className="flex flex-col">
+                    <ProductDetail product={product} />
+                </div>
             </div>
         </main>
-    )
+    );
 }
-
-

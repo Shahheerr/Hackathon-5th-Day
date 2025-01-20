@@ -1,49 +1,27 @@
-'use client'
+'use client';
 
-import Image from 'next/image'
-import Link from 'next/link'
-import { useState } from 'react'
-import RedController from "@/assets/g92-2-500x500 1.png"
-import Monitor from "@/assets/g27cq4-500x500 1.png"
-
-interface CartItem {
-    id: number
-    name: string
-    price: number
-    quantity: number
-    image: string | unknown
-}
+import { useCart } from '@/context/CartContext';
+import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function CartPage() {
-    const [cartItems, setCartItems] = useState<CartItem[]>([
-        {
-            id: 1,
-            name: "LCD Monitor",
-            price: 650,
-            quantity: 1,
-            image: Monitor
-        },
-        {
-            id: 2,
-            name: "H1 Gamepad",
-            price: 550,
-            quantity: 2,
-            image: RedController
-        }
-    ])
+    const { cart, updateQuantity, removeItem } = useCart();
 
-    const updateQuantity = (id: number, newQuantity: number) => {
-        if (newQuantity < 1) return
-        setCartItems(items =>
-            items.map(item =>
-                item.id === id ? { ...item, quantity: newQuantity } : item
-            )
-        )
+    // Round off subtotal and total to avoid decimal points
+    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const shipping = 0; // Free shipping
+    const total = subtotal + shipping;
+    console.log(cart);
+
+    // Function to round off numbers to 2 decimal places
+    const roundToTwoDecimals = (value: number) => Math.round(value * 100) / 100;
+
+    const router = useRouter()
+
+    function handleCheckout(){
+        router.push('/checkout')
     }
-
-    const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-    const shipping = 0 // Free shipping
-    const total = subtotal + shipping
 
     return (
         <div className="max-w-full mx-[80px] px-4 py-8 font-poppins">
@@ -58,32 +36,45 @@ export default function CartPage() {
 
             {/* Cart Table */}
             <div className="mb-8">
-                <div className="grid grid-cols-4 gap-4 pb-4 shadow-sm rounded-[4px] p-4">
+                <div className="grid grid-cols-5 gap-4 pb-4 shadow-sm rounded-[4px] p-4">
                     <div>Product</div>
                     <div>Price</div>
                     <div>Quantity</div>
                     <div>Subtotal</div>
+                    <div>Actions</div>
                 </div>
 
-                {cartItems.map((item) => (
-                    <div key={item.id} className="grid grid-cols-4 gap-4 py-8 shadow-sm rounded-[4px] p-4 items-center mb-4">
+                {cart.map((item) => (
+                    <div
+                        key={item.id}
+                        className="grid grid-cols-5 gap-4 py-8 shadow-sm rounded-[4px] p-4 items-center mb-4"
+                    >
                         <div className="flex items-center gap-4">
-                            <button className="text-gray-400 hover:text-[#DB4444]">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                            {/* Close Button for removing item */}
+                            <button
+                                onClick={() => removeItem(item.id)}
+                                className="text-gray-400 hover:text-[#DB4444]"
+                            >
+                                <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
                                 </svg>
                             </button>
                             <div className="relative w-16 h-16">
-                                <Image
-                                    src={item.image}
-                                    alt={item.name}
-                                    fill
-                                    className="object-cover"
-                                />
+                                <Image src={item.image} alt={item.name} fill className="object-cover" />
                             </div>
                             <span className="font-normal">{item.name}</span>
                         </div>
-                        <div className="font-normal">${item.price}</div>
+                        <div className="font-normal">${roundToTwoDecimals(item.price)}</div>
                         <div>
                             <div className="inline-flex items-center border rounded">
                                 <input
@@ -100,7 +91,13 @@ export default function CartPage() {
                                         ⌃
                                     </button>
                                     <button
-                                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                        onClick={() => {
+                                            if (item.quantity === 1) {
+                                                removeItem(item.id); // Remove if quantity goes to 0
+                                            } else {
+                                                updateQuantity(item.id, item.quantity - 1);
+                                            }
+                                        }}
                                         className="px-2 py-0.5 hover:bg-gray-100"
                                     >
                                         ⌄
@@ -108,26 +105,22 @@ export default function CartPage() {
                                 </div>
                             </div>
                         </div>
-                        <div className="font-normal">${item.price * item.quantity}</div>
+                        <div className="font-normal">${roundToTwoDecimals(item.price * item.quantity)}</div>
+                        <div>
+                            <button
+                                onClick={() => removeItem(item.id)}
+                                className="px-4 py-2 bg-[#DB4444] text-white rounded font-normal hover:bg-opacity-90 transition-colors"
+                            >
+                                Remove
+                            </button>
+                        </div>
                     </div>
                 ))}
             </div>
 
-            {/* Actions */}
-            <div className="flex justify-between mb-8">
-                <Link
-                    href="/shop"
-                    className="px-12 py-3 border border-[#00000080] rounded-[4px] font-medium hover:bg-gray-50 transition-colors"
-                >
-                    Return To Shop
-                </Link>
-                <button className="px-12 py-3 border border-[#00000080] rounded-[4px] font-medium hover:bg-gray-50 transition-colors">
-                    Update Cart
-                </button>
-            </div>
-
             {/* Coupon and Cart Total */}
             <div className="flex justify-between gap-8">
+                {/* Coupon Code */}
                 <div className="flex gap-4 max-w-full">
                     <input
                         type="text"
@@ -139,12 +132,13 @@ export default function CartPage() {
                     </button>
                 </div>
 
+                {/* Cart Totals */}
                 <div className="w-[470px] border border-[#00000080] rounded p-6">
                     <h2 className="text-xl font-medium mb-6">Cart Total</h2>
                     <div className="space-y-4">
                         <div className="flex justify-between pb-4 border-b border-black">
                             <span className="font-normal">Subtotal:</span>
-                            <span className="font-normal">${subtotal}</span>
+                            <span className="font-normal">${roundToTwoDecimals(subtotal)}</span>
                         </div>
                         <div className="flex justify-between pb-4 border-b border-black">
                             <span className="font-normal">Shipping:</span>
@@ -152,14 +146,14 @@ export default function CartPage() {
                         </div>
                         <div className="flex justify-between">
                             <span className="font-normal">Total:</span>
-                            <span className="font-normal">${total}</span>
+                            <span className="font-normal">${roundToTwoDecimals(total)}</span>
                         </div>
-                        <button className="w-full py-4 bg-[#DB4444] text-white rounded font-normal hover:bg-opacity-90 transition-colors mt-6">
+                        <button onClick={handleCheckout} className="w-full py-4 bg-[#DB4444] text-white rounded font-normal hover:bg-opacity-90 transition-colors mt-6">
                             Proceed to Checkout
                         </button>
                     </div>
                 </div>
             </div>
         </div>
-    )
+    );
 }

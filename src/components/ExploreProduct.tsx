@@ -1,210 +1,176 @@
-'use client'
-
-import Image from 'next/image'
-import { IoHeartOutline } from "react-icons/io5"
-import { IoEyeOutline } from "react-icons/io5"
+"use client"
+import Image from "next/image"
 import { FaChevronRight, FaChevronLeft } from "react-icons/fa"
-import DogFood from "@/assets/Frame 604 (4).png"
-import Camera from "@/assets/Frame 604 (1).png"
-import Laptop from "@/assets/Frame 604 (2).png"
-import Makeup from "@/assets/download.jpeg"
-import Car from "@/assets/Frame 608 (4).png"
-import Shoes from "@/assets/Frame 608 (1).png"
-import Controller from "@/assets/Frame 608 (2).png"
-import Jacket from "@/assets/Frame 608 (3).png"
+import { useEffect, useState } from "react"
+import { client } from "@/sanity/lib/client"
+import { getAllProductsQuery } from "@/sanity/lib/queries"
+import Link from "next/link"
+import { useCart } from "@/context/CartContext"
+import { Slide, ToastContainer, toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css"
 
 interface Product {
-  id: number
-  name: string
+  _id: string
+  title: string
   price: number
   rating: number
-  reviews: number
-  image: string | unknown
+  ratingCount: number
+  imageUrl: string
+  image?: {
+    asset: {
+      url: string
+    }
+  }
   isNew?: boolean
   colors?: string[]
-  showCart: boolean
+  tags?: string[]
 }
 
-const products: Product[] = [
-  {
-    id: 1,
-    name: "Breed Dry Dog Food",
-    price: 100,
-    rating: 3,
-    reviews: 35,
-    image: DogFood,
-    showCart: true
-  },
-  {
-    id: 2,
-    name: "CANON EOS DSLR Camera",
-    price: 360,
-    rating: 4,
-    reviews: 95,
-    image: Camera,
-    showCart: true
-  },
-  {
-    id: 3,
-    name: "ASUS FHD Gaming Laptop",
-    price: 700,
-    rating: 5,
-    reviews: 325,
-    image: Laptop,
-    showCart: true
-  },
-  {
-    id: 4,
-    name: "Curology Product Set",
-    price: 500,
-    rating: 4,
-    reviews: 145,
-    image: Makeup,
-    showCart: true
-  },
-  {
-    id: 5,
-    name: "Kids Electric Car",
-    price: 960,
-    rating: 5,
-    reviews: 65,
-    image: Car,
-    isNew: true,
-    colors: ['#000000', '#DB4444'],
-    showCart: true
-  },
-  {
-    id: 6,
-    name: "Jr. Zoom Soccer Cleats",
-    price: 1160,
-    rating: 5,
-    reviews: 35,
-    image: Shoes,
-    colors: ['#EEFF61', '#DB4444'],
-    showCart: true
-  },
-  {
-    id: 7,
-    name: "GP11 Shooter USB Gamepad",
-    price: 660,
-    rating: 5,
-    reviews: 65,
-    image: Controller,
-    isNew: true,
-    colors: ['#000000', '#DB4444'],
-    showCart: true
-  },
-  {
-    id: 8,
-    name: "Quilted Satin Jacket",
-    price: 660,
-    rating: 4,
-    reviews: 55,
-    image: Jacket,
-    colors: ['#184A48', '#DB4444'],
-    showCart: true
-  },
-]
-
-function StarRating({ rating, reviews }: { rating: number; reviews: number }) {
+export function StarRating({ rating, reviews }: { rating: number; reviews: number }) {
   return (
     <div className="flex items-center gap-2">
       <div className="flex">
-        {[...Array(5)].map((_, i) => (
+        {[...Array(5)].map((_, index) => (
           <svg
-            key={i}
-            className={`w-4 h-4 ${i < rating ? 'text-yellow-400' : 'text-gray-300'}`}
+            key={index}
+            className={`w-4 h-4 ${index < rating ? "text-yellow-300" : "text-gray-300"}`}
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
             fill="currentColor"
-            viewBox="0 0 20 20"
+            viewBox="0 0 22 20"
           >
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            <path d="M20.924 7.625a1.523 1.523 0 0 0-1.238-1.044l-5.051-.734-2.259-4.577a1.534 1.534 0 0 0-2.752 0L7.365 5.847l-5.051.734A1.535 1.535 0 0 0 1.463 9.2l3.656 3.563-.863 5.031a1.532 1.532 0 0 0 2.226 1.616L11 17.033l4.518 2.375a1.534 1.534 0 0 0 2.226-1.617l-.863-5.03L20.537 9.2a1.523 1.523 0 0 0 .387-1.575Z" />
           </svg>
         ))}
       </div>
-      <span className="text-sm text-gray-500">({reviews})</span>
+      <p className="text-sm text-gray-500">({reviews})</p>
     </div>
   )
 }
 
 export default function ExploreProducts() {
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const { addItem } = useCart()
+
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const data = await client.fetch(getAllProductsQuery)
+        setProducts(data)
+      } catch (error) {
+        console.error("Error fetching products:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [])
+
+  if (loading) {
+    return <div className="text-center py-10">Loading products...</div>
+  }
+
+  const displayedProducts = products.slice(0, 8)
+
   return (
-    <div className="max-w-full mx-[80px] px-4 py-8">
+    <div className="max-w-[1170px] mx-auto px-4 py-8 bg-[#FFF]">
       <div className="flex flex-col mb-8">
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-8 rounded-[4px] bg-[#DB4444]" />
-          <span className="text-[#DB4444] font-medium">Our Products</span>
-        </div>
-        <div className="flex items-center justify-between mt-4">
-          <h2 className="text-3xl font-bold">Explore Our Products</h2>
+        <div className="flex justify-between items-center">
+          <div>
+            <div className="w-[20px] h-[40px] bg-[#DB4444] rounded-[4px]"></div>
+            <h4 className="text-[#DB4444] font-semibold mt-4">Our Products</h4>
+            <h2 className="text-[36px] font-semibold mt-4">Explore Our Products</h2>
+          </div>
           <div className="flex gap-2">
-            <button className="p-2 rounded-full border hover:bg-gray-100">
-              <FaChevronLeft className="w-5 h-5" />
+            <button className="bg-[#F5F5F5] w-[46px] h-[46px] flex items-center justify-center rounded-full">
+              <FaChevronLeft />
             </button>
-            <button className="p-2 rounded-full border hover:bg-gray-100">
-              <FaChevronRight className="w-5 h-5" />
+            <button className="bg-[#F5F5F5] w-[46px] h-[46px] flex items-center justify-center rounded-full">
+              <FaChevronRight />
             </button>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {products.map((product) => (
-          <div key={product.id} className="group relative bg-[#F5F5F5] rounded-[4px]">
-            {product.isNew && (
-              <span className="absolute top-3 left-3 bg-[#00FF66] text-white text-sm px-3 py-1 rounded-[4px] font-medium z-10">
-                NEW
-              </span>
-            )}
-            <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
-              <button className="p-2 bg-white rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                <IoHeartOutline className="w-5 h-5" />
-              </button>
-              <button className="p-2 bg-white rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                <IoEyeOutline className="w-5 h-5" />
-              </button>
-            </div>
+        {displayedProducts.map((product) => (
+          <Link
+            href={`/products/${product._id}`}
+            key={product._id}
+            className="group relative bg-[#F5F5F5] rounded-[4px]"
+          >
+            {product.tags &&
+              product.tags.map((tag, index) => (
+                <span
+                  key={tag}
+                  className={`absolute top-3 ${index === 0 ? "left-3" : "left-16"} bg-${tag === "NEW" ? "[#00FF66]" : "[#DB4444]"} text-white text-sm px-3 py-1 rounded-[4px] font-medium z-10`}
+                >
+                  {tag}
+                </span>
+              ))}
             <div className="relative aspect-square w-full p-4 group">
               <Image
-                src={product.image}
-                alt={product.name}
+                src={product.image?.asset.url || product.imageUrl}
+                alt={product.title}
                 fill
-                className="object-contain mix-blend-multiply"
+                className="object-contain mix-blend-multiply p-2"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
               />
-              {product.showCart && (
-                <div
-                  className="absolute bottom-0 left-0 right-0 bg-black text-white py-2 text-center cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  Add To Cart
-                </div>
-              )}
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  addItem({
+                    id: product._id, // Ensure id is a number
+                    name: product.title,
+                    price: product.price,
+                    quantity: 1,
+                    image: product.image?.asset.url || product.imageUrl,
+                  })
+                  toast.success("Product added to cart 🛒", {
+                    position: "bottom-right",
+                    autoClose: 2000,
+                    hideProgressBar: false,
+                    closeOnClick: false,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "light",
+                    transition: Slide,
+                  })
+                }}
+                className="absolute bottom-0 left-0 right-0 bg-black text-white text-center py-2 opacity-0 group-hover:opacity-100 transition-all duration-300"
+              >
+                Add to Cart
+              </button>
             </div>
 
             <div className="p-4 bg-white rounded-b-[4px]">
-              <h3 className="font-medium mb-2">{product.name}</h3>
+              <h3 className="font-medium mb-2 truncate">{product.title}</h3>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-[#DB4444] font-medium">${product.price}</span>
+                <span className="text-[#DB4444] font-medium">${product.price.toFixed(2)}</span>
               </div>
-              <StarRating rating={product.rating} reviews={product.reviews} />
+              <StarRating rating={product.rating} reviews={product.ratingCount} />
               {product.colors && (
                 <div className="flex gap-2 mt-2">
                   {product.colors.map((color) => (
-                    <div
-                      key={color}
-                      className="w-5 h-5 rounded-full border border-gray-300"
-                      style={{ backgroundColor: color }}
-                    />
+                    <div key={color} className="w-4 h-4 rounded-full" style={{ backgroundColor: color }} />
                   ))}
                 </div>
               )}
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
       <div className="flex justify-center mt-8">
-        <button className="bg-[#DB4444] text-white px-8 py-3 rounded-[4px] hover:bg-opacity-90">
+        <Link
+          href="/products"
+          className="bg-[#DB4444] text-white px-12 py-4 rounded-[4px] hover:bg-[#E64444] transition-colors"
+        >
           View All Products
-        </button>
+        </Link>
       </div>
     </div>
   )

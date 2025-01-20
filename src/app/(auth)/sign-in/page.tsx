@@ -1,15 +1,41 @@
+'use client'
+
 import Image from "next/image"
 import Link from "next/link"
-import cartAndMobile from "@/assets/dl.beatsnoop 1.png";
+import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import cartAndMobile from "@/assets/dl.beatsnoop 1.png"
 
 export default function SigninPage() {
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
+    const router = useRouter()
+
+    useEffect(() => {
+        const isLoggedIn = localStorage.getItem('isLoggedIn')
+        if (isLoggedIn === 'true') {
+            router.push('/account')
+        }
+    }, [router])
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}')
+        if (userData.email === email && userData.password === password) {
+            localStorage.setItem('isLoggedIn', 'true')
+            router.push('/account')
+        } else {
+            alert('Invalid credentials')
+        }
+    }
+
     return (
         <div className="max-w-7xl mx-auto min-h-screen my-16 mr-20 w-full flex flex-col lg:flex-row">
             {/* Left Section with Image */}
             <div className="w-full lg:w-1/2 bg-[#CBE4E8] flex items-center justify-center">
                 <div className="relative w-full max-w-xl aspect-square">
                     <Image
-                        src={cartAndMobile}
+                        src={cartAndMobile || "/placeholder.svg"}
                         alt="Shopping cart with phone and shopping bags"
                         fill
                         className="object-cover"
@@ -26,12 +52,15 @@ export default function SigninPage() {
                         <p className="text-black font-poppins font-normal text-base">Enter your details below</p>
                     </div>
 
-                    <form className="space-y-4">
+                    <form className="space-y-4" onSubmit={handleSubmit}>
                         <div className="space-y-2">
                             <input
-                                type="text"
-                                placeholder="Email or Phone Number"
+                                type="email"
+                                placeholder="Email"
                                 className="w-full my-3 py-2 border-b border-gray-300 focus:border-blue-500 focus:outline-none"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
                             />
                         </div>
                         <div className="space-y-2">
@@ -39,6 +68,9 @@ export default function SigninPage() {
                                 type="password"
                                 placeholder="Password"
                                 className="w-full my-3 py-2 border-b border-gray-300 focus:border-blue-500 focus:outline-none"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
                             />
                         </div>
 
@@ -64,3 +96,4 @@ export default function SigninPage() {
         </div>
     )
 }
+

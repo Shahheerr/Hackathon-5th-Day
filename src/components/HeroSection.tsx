@@ -1,21 +1,56 @@
+'use client'
+
 import Link from "next/link";
 import Image from "next/image";
 import { FaChevronRight } from "react-icons/fa";
 import AppleBanner from "@/assets/hero_endframe__cvklg0xk3w6e_large 2.png";
 import AppleLogo from "@/assets/1200px-Apple_gray_logo 1.png";
+import { useEffect, useState } from "react";
+import { client } from "@/sanity/lib/client";
+import { getUniqueCategoriesQuery } from "@/sanity/lib/queries";
 
 function CategorySidebar() {
-    const categories = [
-        "Woman's Fashion",
-        "Men's Fashion",
-        "Electronics",
-        "Home & Lifestyle",
-        "Medicine",
-        "Sports & Outdoor",
-        "Baby's & Toys",
-        "Groceries & Pets",
-        "Health & Beauty",
-    ];
+    const [categories, setCategories] = useState<string[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        async function fetchCategories() {
+            try {
+                const data = await client.fetch(getUniqueCategoriesQuery);
+                setCategories(data);
+            } catch (error) {
+                console.error('Error fetching categories:', error);
+                // Fallback categories in case of error
+                setCategories([
+                    "Electronics",
+                    "Computers",
+                    "Smart Home",
+                    "Gaming",
+                    "Accessories",
+                    "Mobile Phones",
+                    "Audio",
+                    "Cameras",
+                    "Wearables"
+                ]);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchCategories();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="w-full lg:w-60 bg-white shadow-md rounded-md p-4">
+                <div className="animate-pulse space-y-3">
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                        <div key={i} className="h-8 bg-gray-200 rounded"></div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full lg:w-60 bg-white shadow-md rounded-md overflow-x-auto">
@@ -23,13 +58,11 @@ function CategorySidebar() {
                 {categories.map((category, index) => (
                     <Link
                         key={index}
-                        href="#"
+                        href={`/products?category=${encodeURIComponent(category)}`}
                         className="flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors border-r-2 border-transparent hover:border-gray-300 whitespace-nowrap"
                     >
                         <span>{category}</span>
-                        {(category === "Woman's Fashion" || category === "Men's Fashion") && (
-                            <FaChevronRight className="h-4 w-4 text-gray-500 ml-2" />
-                        )}
+                        <FaChevronRight className="h-4 w-4 text-gray-500 ml-2" />
                     </Link>
                 ))}
             </nav>
